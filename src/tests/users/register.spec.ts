@@ -95,7 +95,7 @@ describe("POST auth/register", () => {
             expect(users[0].firstName).toBe(userData.firstName);
             expect(users[0].lastName).toBe(userData.lastName);
             expect(users[0].email).toBe(userData.email);
-            expect(users[0].password).toBe(userData.password);
+            // expect(users[0].password).toBe(userData.password);
         });
 
         it.todo("should return an id of the created user");
@@ -121,6 +121,59 @@ describe("POST auth/register", () => {
 
             expect(user[0]).toHaveProperty("role");
             expect(user[0].role).toBe(Roles.CUSTOMER);
+        });
+
+        it("should have hashed password", async () => {
+            // Arrange
+
+            const userData = {
+                firstName: "Sourav",
+                lastName: "Yadav",
+                email: "sourav.mern.space",
+                password: "secret",
+            };
+
+            // Act
+
+            await request(app).post("/auth/register").send(userData);
+
+            // Assert
+
+            const userRepository = connection.getRepository(User);
+            const user = await userRepository.find();
+
+            expect(user[0].password).not.toBe(userData.password);
+            expect(user[0].password).toHaveLength(60);
+            expect(user[0].password).toMatch(/^\$2b\$\d+\$/);
+        });
+
+        it("should have unique email", async () => {
+            // Arrange
+
+            const userData = {
+                firstName: "Sourav",
+                lastName: "Yadav",
+                email: "sourav.mern.space",
+                password: "secret",
+            };
+
+            const userRepository = connection.getRepository(User);
+            const user = await userRepository.save({
+                ...userData,
+                role: Roles.CUSTOMER,
+            });
+
+            // Act
+
+            const response = await request(app)
+                .post("/auth/register")
+                .send(user);
+            const users = await userRepository.find();
+
+            // Assert
+
+            expect(response.statusCode).toBe(400);
+            expect(users).toHaveLength(1);
         });
     });
 
