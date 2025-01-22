@@ -114,5 +114,17 @@ describe("POST auth/self", () => {
 
             expect(response.body).not.toHaveProperty("password");
         });
+
+        it("should return 401 status code when token does not exists", async () => {
+            const userRepo = connection.getRepository(User);
+            await userRepo.save({
+                ...registrationUserData,
+                role: Roles.CUSTOMER,
+            });
+
+            const repsonse = await request(app).get("/auth/self").send();
+
+            expect(repsonse.statusCode).toBe(401);
+        });
     });
 });
