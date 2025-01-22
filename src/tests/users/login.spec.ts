@@ -6,7 +6,7 @@ import { AppDataSource } from "../../config/data-source";
 
 import { isJwt } from "../utils";
 
-describe.skip("POST auth/login", () => {
+describe("POST auth/login", () => {
     let connection: DataSource;
 
     const registrationUserData = {

@@ -10,7 +10,7 @@ import { RefreshToken } from "../../entity/RefreshToken";
 
 // import { truncateTables } from "../utils";
 
-describe.skip("POST auth/register", () => {
+describe("POST auth/register", () => {
     let connection: DataSource;
 
     beforeAll(async () => {
