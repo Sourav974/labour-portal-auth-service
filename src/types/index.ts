@@ -17,3 +17,8 @@ export interface AuthRequest extends Request {
         role: string;
     };
 }
+
+export interface UserResponseBody {
+    id: number;
+    role: string;
+}

@@ -6,6 +6,8 @@ import { DataSource } from "typeorm";
 import { AppDataSource } from "../../config/data-source";
 import { User } from "../../entity/User";
 import { Roles } from "../../constants";
+import { UserResponseBody } from "../../types";
+import { extractAuthTokensFromCookies, isJwt } from "../utils";
 
 describe("POST auth/self", () => {
     let connection: DataSource;
@@ -32,7 +34,7 @@ describe("POST auth/self", () => {
         await connection.dropDatabase();
         await connection.synchronize();
 
-        await request(app).post("/auth/register").send(registrationUserData);
+        // await request(app).post("/auth/register").send(registrationUserData);
     });
 
     afterEach(() => {
@@ -125,6 +127,54 @@ describe("POST auth/self", () => {
             const repsonse = await request(app).get("/auth/self").send();
 
             expect(repsonse.statusCode).toBe(401);
+        });
+
+        it("should send new access token when refresh token is provided", async () => {
+            // getting the refresh token from the cookie
+            // then check that refresh token in the DB
+            // then verify the signature of refresh token
+            // if everything alright then return the refresh token
+
+            const response = await request(app)
+                .post("/auth/register")
+                .send(registrationUserData);
+
+            const responseBody = response.body as UserResponseBody;
+
+            const userRepo = connection.getRepository(User);
+            const user = await userRepo.findOne({
+                where: {
+                    id: responseBody.id,
+                },
+            });
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            const cookie = (response.headers["set-cookie"] || []) as string[];
+
+            const { refreshToken } = extractAuthTokensFromCookies(cookie);
+
+            const accessToken = jwks.token({
+                sub: String(responseBody.id),
+                role: user.role,
+            });
+
+            const refreshResponse = await request(app)
+                .post("/auth/refresh")
+                .set("Cookie", [`refreshToken=${refreshToken}`])
+                .send();
+
+            const cookies = (refreshResponse.headers["set-cookie"] ||
+                []) as string[];
+
+            const { accessToken: newAccessToken } =
+                extractAuthTokensFromCookies(cookies);
+
+            expect(accessToken.length).toBeGreaterThan(0);
+            expect(accessToken).not.toBe(newAccessToken);
+            expect(isJwt(accessToken)).toBe(true);
         });
     });
 });

@@ -30,3 +30,22 @@ export const isJwt = (token: string | null): boolean => {
         return false;
     }
 };
+
+export const extractAuthTokensFromCookies = (cookies: string[]) => {
+    let accessToken: string = "";
+    let refreshToken: string = "";
+
+    cookies.forEach((cookie) => {
+        if (cookie.includes("accessToken")) {
+            accessToken = cookie.split(";")[0].split("=")[1];
+        }
+    });
+
+    cookies.forEach((cookie) => {
+        if (cookie.includes("refreshToken")) {
+            refreshToken = cookie.split(";")[0].split("=")[1];
+        }
+    });
+
+    return { accessToken, refreshToken };
+};
