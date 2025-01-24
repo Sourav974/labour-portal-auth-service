@@ -19,6 +19,21 @@ export class AuthController {
         private credentialService: CredentialService,
     ) {}
 
+    // cookie method
+    private setCookie(
+        res: Response,
+        name: string,
+        token: string,
+        maxAge: number,
+    ) {
+        res.cookie(name, token, {
+            domain: "localhost",
+            sameSite: "strict",
+            maxAge,
+            httpOnly: true,
+        });
+    }
+
     async register(
         req: RegisterUserRequest,
         res: Response,
@@ -74,19 +89,14 @@ export class AuthController {
                 id: String(newRefreshToken.id),
             });
 
-            res.cookie("accessToken", accessToken, {
-                domain: "localhost",
-                sameSite: "strict",
-                maxAge: 1000 * 60 * 60, // 1h
-                httpOnly: true,
-            });
+            this.setCookie(res, "accessToken", accessToken, 1000 * 60 * 60);
 
-            res.cookie("refreshToken", refreshToken, {
-                domain: "localhost",
-                sameSite: "strict",
-                maxAge: 1000 * 60 * 60 * 24 * 365, // 1h
-                httpOnly: true,
-            });
+            this.setCookie(
+                res,
+                "refreshToken",
+                refreshToken,
+                1000 * 60 * 60 * 24 * 365,
+            );
 
             res.status(201).json({ id: user.id });
         } catch (error) {
@@ -181,5 +191,61 @@ export class AuthController {
         const user = await this.userService.findById(Number(req.auth.sub));
 
         return res.json({ ...user, password: undefined });
+    }
+
+    async refresh(req: AuthRequest, res: Response, next: NextFunction) {
+        // console.log((req as AuthRequest).auth);
+
+        try {
+            const payload: JwtPayload = {
+                sub: req.auth.sub,
+                role: req.auth.role,
+            };
+
+            // Generate the acess token
+            const accessToken = this.tokenService.generateAccessToken(payload);
+
+            this.logger.info("Access token generated");
+
+            // Persist the refresh token
+            const user = await this.userService.findById(Number(req.auth.sub));
+
+            if (!user) {
+                const error = createHttpError(
+                    400,
+                    "User with the token could not find",
+                );
+                next(error);
+                return;
+            }
+
+            const newRefreshToken =
+                await this.tokenService.persistRefreshToken(user);
+
+            // delete old refresh token
+            await this.tokenService.deleteRefreshToken(Number(req.auth.id));
+
+            this.logger.info("Old refresh token deleted", { id: user.id });
+
+            // Generate refresh token
+            const refreshToken = this.tokenService.generateRefreshToken({
+                ...payload,
+                id: String(newRefreshToken.id),
+            });
+
+            this.setCookie(res, "accessToken", accessToken, 1000 * 60 * 60);
+
+            this.setCookie(
+                res,
+                "refreshToken",
+                refreshToken,
+                1000 * 60 * 60 * 24 * 365,
+            );
+
+            res.json({ id: user.id });
+        } catch (error) {
+            next(error);
+            return;
+        }
     }
 }
