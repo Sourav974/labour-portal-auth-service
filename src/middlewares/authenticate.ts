@@ -24,6 +24,7 @@ export default expressjwt({
         }
 
         const { accessToken } = req.cookies as authCookie;
+
         return accessToken;
     },
 });
