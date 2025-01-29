@@ -70,7 +70,44 @@ describe("POST /auth/logout", () => {
             expect(logoutResponse.statusCode).toBe(200);
         });
 
-        it.todo("should clear the access and refresh token cookie");
+        it("should clear the access and refresh token cookie", async () => {
+            const response = await request(app)
+                .post("/auth/register")
+                .send(registrationUserData);
+
+            const responseBody = response.body as UserResponseBody;
+
+            const responseCookies = (response.headers["set-cookie"] ||
+                []) as string[];
+
+            const { refreshToken } =
+                extractAuthTokensFromCookies(responseCookies);
+
+            const accessToken = jwks.token({
+                sub: String(responseBody.id),
+                role: Roles.CUSTOMER,
+            });
+
+            const logoutResponse = await request(app)
+                .post(endpoint)
+                .set("Cookie", [
+                    `accessToken=${accessToken};`,
+                    `refreshToken=${refreshToken};`,
+                ])
+                .send();
+
+            const logoutResponseCookies = (logoutResponse.headers[
+                "set-cookie"
+            ] || []) as string[];
+
+            const {
+                accessToken: logoutResponseAccessToken,
+                refreshToken: logoutResponseRefreshtoken,
+            } = extractAuthTokensFromCookies(logoutResponseCookies);
+
+            expect(logoutResponseAccessToken).toHaveLength(0);
+            expect(logoutResponseRefreshtoken).toHaveLength(0);
+        });
 
         it("should delete the refresh token from the database", async () => {
             const response = await request(app)
