@@ -10,6 +10,7 @@ import { TokenService } from "../services/TokenService";
 // import { AppDataSource } from "../config/data-source";
 import createHttpError from "http-errors";
 import { CredentialService } from "../services/CredentialService";
+import { Roles } from "../constants";
 
 export class AuthController {
     constructor(
@@ -65,6 +66,7 @@ export class AuthController {
                 lastName,
                 email,
                 password,
+                role: Roles.CUSTOMER,
             });
 
             this.logger.info("User has been registered", {
