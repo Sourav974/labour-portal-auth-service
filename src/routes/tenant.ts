@@ -19,4 +19,20 @@ router.post("/", authenticate, canAccess([Roles.ADMIN]), (req, res, next) =>
     tenantController.create(req, res, next),
 );
 
+router.get("/", (req, res, next) =>
+    tenantController.getTenants(req, res, next),
+);
+
+router.get("/:id", (req, res, next) =>
+    tenantController.getTenantByID(req, res, next),
+);
+
+router.patch("/:id", (req, res, next) =>
+    tenantController.updateTenant(req, res, next),
+);
+
+router.delete("/:id", (req, res, next) =>
+    tenantController.deleteTenant(req, res, next),
+);
+
 export default router;
