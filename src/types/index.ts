@@ -6,6 +6,13 @@ export interface userData {
     email: string;
     password: string;
     role: string;
+    tenantId?: number;
+}
+
+export interface LimitedUserData {
+    firstName: string;
+    lastName: string;
+    role: string;
 }
 
 export interface RegisterUserRequest extends Request {

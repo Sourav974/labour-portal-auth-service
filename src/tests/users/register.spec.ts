@@ -165,7 +165,7 @@ describe("POST auth/register", () => {
             // Assert
 
             const userRepository = connection.getRepository(User);
-            const user = await userRepository.find();
+            const user = await userRepository.find({ select: ["password"] });
 
             expect(user[0].password).not.toBe(userData.password);
             expect(user[0].password).toHaveLength(60);
