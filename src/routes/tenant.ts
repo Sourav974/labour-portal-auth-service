@@ -23,7 +23,7 @@ router.get("/", (req, res, next) =>
     tenantController.getTenants(req, res, next),
 );
 
-router.get("/:id", (req, res, next) =>
+router.get("/:id", authenticate, canAccess([Roles.ADMIN]), (req, res, next) =>
     tenantController.getTenantByID(req, res, next),
 );
 
