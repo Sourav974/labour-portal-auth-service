@@ -28,5 +28,7 @@ export const Config = {
     DB_NAME,
     REFRESH_TOKEN_SECRET,
     JWKS_URI,
-    PRIVATE_KEY,
+    PRIVATE_KEY: PRIVATE_KEY
+        ? Buffer.from(PRIVATE_KEY, "base64").toString("utf-8")
+        : undefined,
 };

@@ -48,6 +48,8 @@ describe("POST auth/register", () => {
                 .post("/auth/register")
                 .send(userData);
 
+            console.log(response.body);
+
             // Assert
 
             expect(response.statusCode).toBe(201);
