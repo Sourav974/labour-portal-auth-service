@@ -1,4 +1,3 @@
-jest.setTimeout(20000);
 import request from "supertest";
 import app from "../../app";
 

@@ -55,7 +55,7 @@ describe("POST auth/self", () => {
             const registrationUserData = {
                 firstName: "Sourav",
                 lastName: "Yadav",
-                email: " sourav@mern.space ",
+                email: "sourav@mern.space",
                 password: "password",
                 tenantId: 1,
             };
@@ -82,7 +82,7 @@ describe("POST auth/self", () => {
             const registrationUserData = {
                 firstName: "Sourav",
                 lastName: "Yadav",
-                email: " sourav@mern.space ",
+                email: "sourav@mern.space",
                 password: "password",
                 tenantId: 1,
             };
