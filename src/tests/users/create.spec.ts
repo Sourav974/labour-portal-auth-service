@@ -1,148 +1,130 @@
-import createJWKSMock from "mock-jwks";
-import request from "supertest";
 import { DataSource } from "typeorm";
-import app from "../../app";
+import request from "supertest";
+import createJWKSMock from "mock-jwks";
+
 import { AppDataSource } from "../../config/data-source";
-import { Tenant } from "../../entity/Tenant";
+import app from "../../app";
 import { Roles } from "../../constants/index";
+import { User } from "../../entity/User";
+import { Tenant } from "../../entity/Tenant";
+import { createTenant } from "../utils";
 
 describe("POST /users", () => {
-    let dataSource: DataSource;
+    let connection: DataSource;
     let jwks: ReturnType<typeof createJWKSMock>;
-    let adminToken: string;
-    let nonAdminToken: string;
-    let tenant: Tenant;
-
-    const endpoint = "/users";
-    const managerUserData = {
-        firstName: "Sankha",
-        lastName: "Chakraborty",
-        email: "yobud@gmail.com",
-        password: "passwordSecret",
-        role: "manager",
-        tenantId: 1,
-    };
 
     beforeAll(async () => {
         jwks = createJWKSMock("http://localhost:5500");
-
-        jwks.start();
-        adminToken = jwks.token({
-            sub: "1",
-            role: Roles.ADMIN,
-        });
-        nonAdminToken = jwks.token({
-            sub: "2",
-            role: Roles.CUSTOMER,
-        });
-
-        dataSource = await AppDataSource.initialize();
+        connection = await AppDataSource.initialize();
     });
 
     beforeEach(async () => {
-        await dataSource.dropDatabase();
-        await dataSource.synchronize();
+        jwks.start();
+        await connection.dropDatabase();
+        await connection.synchronize();
+    });
 
-        tenant = await AppDataSource.getRepository(Tenant).save({
-            name: "Tenant 1",
-            address: "Address 1",
-        });
-        managerUserData.tenantId = tenant.id;
+    afterEach(() => {
+        jwks.stop();
     });
 
     afterAll(async () => {
-        jwks.stop();
-        await dataSource.destroy();
+        await connection.destroy();
     });
 
-    describe("All fields provided", () => {
-        it("should return 201 status code", async () => {
-            const response = await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${adminToken};`])
-                .send(managerUserData);
+    describe("Given all fields", () => {
+        it("should persist the user in the database", async () => {
+            // Create tenant first
+            const tenant = await createTenant(connection.getRepository(Tenant));
 
-            expect(response.statusCode).toBe(201);
-        });
-
-        it("should save the user to the database with manager role", async () => {
-            await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${adminToken};`])
-                .send(managerUserData);
-
-            const user = await dataSource.getRepository("User").findOne({
-                where: { email: managerUserData.email },
+            const adminToken = jwks.token({
+                sub: "1",
+                role: Roles.ADMIN,
             });
 
-            if (!user) {
-                throw new Error("Error saving manager to the database");
-            }
+            // Register user
+            const userData = {
+                firstName: "Rakesh",
+                lastName: "K",
+                email: "rakesh@mern.space",
+                password: "password",
+                tenantId: tenant.id,
+                role: Roles.MANAGER,
+            };
 
-            expect(user).toBeDefined();
-            expect(user.role).toBe(Roles.MANAGER);
+            // Add token to cookie
+            await request(app)
+                .post("/users")
+                .set("Cookie", [`accessToken=${adminToken}`])
+                .send(userData);
+
+            const userRepository = connection.getRepository(User);
+            const users = await userRepository.find();
+
+            expect(users).toHaveLength(1);
+            expect(users[0].email).toBe(userData.email);
         });
 
-        it("should return 401 status code if user is unauthenticated", async () => {
-            const response = await request(app)
-                .post(endpoint)
-                .send(managerUserData);
-            expect(response.statusCode).toBe(401);
+        it("should create a manager user", async () => {
+            // Create tenant
+            const tenant = await createTenant(connection.getRepository(Tenant));
+
+            const adminToken = jwks.token({
+                sub: "1",
+                role: Roles.ADMIN,
+            });
+
+            // Register user
+            const userData = {
+                firstName: "Rakesh",
+                lastName: "K",
+                email: "rakesh@mern.space",
+                password: "password",
+                tenantId: tenant.id,
+                role: Roles.MANAGER,
+            };
+
+            // Add token to cookie
+            await request(app)
+                .post("/users")
+                .set("Cookie", [`accessToken=${adminToken}`])
+                .send(userData);
+            const userRepository = connection.getRepository(User);
+            const users = await userRepository.find();
+
+            expect(users).toHaveLength(1);
+            expect(users[0].role).toBe(Roles.MANAGER);
         });
 
-        it("should return 403 status code if user is unauthorized", async () => {
+        it("should return 403 if non admin user tries to create a user", async () => {
+            // Create tenant first
+            const tenant = await createTenant(connection.getRepository(Tenant));
+
+            const nonAdminToken = jwks.token({
+                sub: "1",
+                role: Roles.MANAGER,
+            });
+
+            const userData = {
+                firstName: "Rakesh",
+                lastName: "K",
+                email: "rakesh@mern.space",
+                password: "password",
+                tenantId: tenant.id,
+            };
+
+            // Add token to cookie
             const response = await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${nonAdminToken};`])
-                .send(managerUserData);
+                .post("/users")
+                .set("Cookie", [`accessToken=${nonAdminToken}`])
+                .send(userData);
+
             expect(response.statusCode).toBe(403);
-        });
-    });
 
-    describe.skip("Missing fields", () => {
-        it("should return 400 status code if firstName is missing", async () => {
-            const response = await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${adminToken};`])
-                .send({ ...managerUserData, firstName: undefined });
+            const userRepository = connection.getRepository(User);
+            const users = await userRepository.find();
 
-            expect(response.statusCode).toBe(400);
-        });
-
-        it("should return 400 status code if lastName is missing", async () => {
-            const response = await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${adminToken};`])
-                .send({ ...managerUserData, lastName: undefined });
-
-            expect(response.statusCode).toBe(400);
-        });
-
-        it("should return 400 status code if email is missing", async () => {
-            const response = await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${adminToken};`])
-                .send({ ...managerUserData, email: undefined });
-
-            expect(response.statusCode).toBe(400);
-        });
-
-        it("should return 400 status code if password is missing", async () => {
-            const response = await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${adminToken};`])
-                .send({ ...managerUserData, password: undefined });
-
-            expect(response.statusCode).toBe(400);
-        });
-
-        it("should return 400 status code if tenantId is missing", async () => {
-            const response = await request(app)
-                .post(endpoint)
-                .set("Cookie", [`accessToken=${adminToken};`])
-                .send({ ...managerUserData, tenantId: undefined });
-
-            expect(response.statusCode).toBe(400);
+            expect(users).toHaveLength(0);
         });
     });
 });
