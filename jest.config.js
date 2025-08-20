@@ -8,4 +8,5 @@ module.exports = {
     collectCoverage: true,
     coverageProvider: "v8",
     collectCoverageFrom: ["src/**/*.ts", "!tests/**", "!**/node_modules/**"],
+    testTimeout: 10000,
 };
