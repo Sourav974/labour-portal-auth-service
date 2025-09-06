@@ -7,17 +7,17 @@ import { validationResult } from "express-validator";
 import { JwtPayload } from "jsonwebtoken";
 
 import { TokenService } from "../services/TokenService";
-// import { AppDataSource } from "../config/data-source";
+
 import createHttpError from "http-errors";
 import { CredentialService } from "../services/CredentialService";
 import { Roles } from "../constants";
 
 export class AuthController {
     constructor(
-        private userService: UserService,
-        private logger: Logger,
-        private tokenService: TokenService,
-        private credentialService: CredentialService,
+        private readonly userService: UserService,
+        private readonly logger: Logger,
+        private readonly tokenService: TokenService,
+        private readonly credentialService: CredentialService,
     ) {}
 
     // cookie method
@@ -47,11 +47,11 @@ export class AuthController {
 
         const { firstName, lastName, email, password } = req.body;
 
-        // if (!email) {
-        //     const err = createHttpError(400, "Email is required!");
-        //     next(err);
-        //     return;
-        // }
+        if (!email) {
+            const err = createHttpError(400, "Email is required!");
+            next(err);
+            return;
+        }
 
         this.logger.debug("New request to a user", {
             firstName,

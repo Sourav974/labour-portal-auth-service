@@ -1,5 +1,10 @@
 import "reflect-metadata";
-import express, { NextFunction, Request, Response } from "express";
+import express, {
+    NextFunction,
+    Request,
+    RequestHandler,
+    Response,
+} from "express";
 import cookieParser from "cookie-parser";
 import logger from "./config/logger";
 
@@ -13,9 +18,9 @@ app.use(express.static("public"));
 app.use(cookieParser());
 app.use(express.json());
 
-app.get("/", async (req, res) => {
+app.get("/", (async (req, res) => {
     res.status(200).send("Welcome to auth service!!");
-});
+}) as RequestHandler);
 
 app.use("/auth", authRouter);
 app.use("/tenants", tenantRouter);

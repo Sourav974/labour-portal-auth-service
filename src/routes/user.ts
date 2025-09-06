@@ -1,4 +1,4 @@
-import express from "express";
+import express, { RequestHandler } from "express";
 import authenticate from "../middlewares/authenticate";
 import { canAccess } from "../middlewares/canAccess";
 import { Roles } from "../constants";
@@ -14,23 +14,38 @@ const userRepository = AppDataSource.getRepository(User);
 const userService = new UserService(userRepository);
 const userController = new UserController(userService, logger);
 
-router.post("/", authenticate, canAccess([Roles.ADMIN]), (req, res, next) =>
-    userController.create(req, res, next),
+router.post(
+    "/",
+    authenticate as RequestHandler,
+    canAccess([Roles.ADMIN]),
+    (req, res, next) =>
+        userController.create(req, res, next) as unknown as RequestHandler,
 );
 
-router.get("/", (req, res, next) => userController.getUsers(req, res, next));
+router.get(
+    "/",
+    (req, res, next) =>
+        userController.getUsers(req, res, next) as unknown as RequestHandler,
+);
 
-router.get("/:id", (req, res, next) => userController.getOne(req, res, next));
+router.get(
+    "/:id",
+    (req, res, next) =>
+        userController.getOne(req, res, next) as unknown as RequestHandler,
+);
 
-router.patch("/:id", (req, res, next) =>
-    userController.updateUser(req, res, next),
+router.patch(
+    "/:id",
+    (req, res, next) =>
+        userController.updateUser(req, res, next) as unknown as RequestHandler,
 );
 
 router.delete(
     "/:id",
-    authenticate,
+    authenticate as RequestHandler,
     canAccess([Roles.ADMIN]),
-    (req, res, next) => userController.deleteUser(req, res, next),
+    (req, res, next) =>
+        userController.deleteUser(req, res, next) as unknown as RequestHandler,
 );
 
 export default router;
